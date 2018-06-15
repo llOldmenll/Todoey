@@ -12,20 +12,21 @@ class ToDoListViewController: UITableViewController{
     
     var itemArray : [ToDoModel] = []
     let keyArray = "ItemsArray"
-    let defaults = UserDefaults.standard
+    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("ToDoModel.plist")
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        if let items = defaults.array(forKey: keyArray) as? [ToDoModel]{
-            itemArray = items
-        }
+        
+        
+        
+        restoreItems()
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self, selector: #selector(appMovedToBackground), name: Notification.Name.UIApplicationDidEnterBackground, object: nil)
     }
     
     @objc func appMovedToBackground() {
-        print("App moved to Background!")
+        saveItems()
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -41,8 +42,6 @@ class ToDoListViewController: UITableViewController{
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        //        print(itemArray[indexPath.row])
-        //        tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
         
         let cellAccessory = tableView.cellForRow(at: indexPath)?.accessoryType
         
@@ -53,7 +52,7 @@ class ToDoListViewController: UITableViewController{
             tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
             itemArray[indexPath.row].isChecked = true
         }
-        defaults.set(itemArray, forKey: keyArray)
+//        self.saveItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -64,10 +63,9 @@ class ToDoListViewController: UITableViewController{
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
             if(!(textField.text?.isEmpty)!){
                 let toDo = ToDoModel(name: textField.text!, isChecked: false)
-//                toDo.name =
                 self.itemArray.append(toDo)
                 self.tableView.reloadData()
-//                self.defaults.set(self.itemArray, forKey: self.keyArray)
+//                self.saveItems()
             }
         }
         
@@ -79,7 +77,25 @@ class ToDoListViewController: UITableViewController{
         present(alert, animated: true, completion: nil)
     }
     
+    private func saveItems(){
+        let encoder = PropertyListEncoder()
+        do{
+            let data = try encoder.encode(self.itemArray)
+            try data.write(to: self.dataFilePath!)
+        } catch {
+            print(error)
+        }
+    }
     
-    
+    private func restoreItems(){
+        do{
+            if let data = try? Data(contentsOf: dataFilePath!){
+                let decoder = PropertyListDecoder()
+                itemArray = try decoder.decode([ToDoModel].self, from: data)
+            }
+        } catch {
+            print(error)
+        }
+    }
 }
 
