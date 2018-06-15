@@ -8,18 +8,24 @@
 
 import UIKit
 
-class ToDoListViewController: UITableViewController {
+class ToDoListViewController: UITableViewController{
     
-    var itemArray = ["One", "Two", "Three"]
+    var itemArray : [ToDoModel] = []
     let keyArray = "ItemsArray"
     let defaults = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
-        if let items = defaults.array(forKey: keyArray) as? [String]{
+        if let items = defaults.array(forKey: keyArray) as? [ToDoModel]{
             itemArray = items
         }
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(self, selector: #selector(appMovedToBackground), name: Notification.Name.UIApplicationDidEnterBackground, object: nil)
+    }
+    
+    @objc func appMovedToBackground() {
+        print("App moved to Background!")
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -28,8 +34,9 @@ class ToDoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "ToDoItemCell", for: indexPath)
-        cell.textLabel?.text = itemArray[indexPath.row]
-        cell.accessoryType = .none
+        let item:ToDoModel = itemArray[indexPath.row]
+        cell.textLabel?.text = item.name
+        cell.accessoryType = item.isChecked ? .checkmark : .none
         return cell;
     }
     
@@ -41,10 +48,12 @@ class ToDoListViewController: UITableViewController {
         
         if cellAccessory == .checkmark{
             tableView.cellForRow(at: indexPath)?.accessoryType = .none
+            itemArray[indexPath.row].isChecked = false
         } else {
             tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
+            itemArray[indexPath.row].isChecked = true
         }
-        
+        defaults.set(itemArray, forKey: keyArray)
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -54,9 +63,11 @@ class ToDoListViewController: UITableViewController {
         let alert = UIAlertController(title: "Add new ToDo", message: "", preferredStyle: .alert)
         let action = UIAlertAction(title: "Add", style: .default) { (action) in
             if(!(textField.text?.isEmpty)!){
-                self.itemArray.append(textField.text!)
+                let toDo = ToDoModel(name: textField.text!, isChecked: false)
+//                toDo.name =
+                self.itemArray.append(toDo)
                 self.tableView.reloadData()
-                self.defaults.set(self.itemArray, forKey: self.keyArray)
+//                self.defaults.set(self.itemArray, forKey: self.keyArray)
             }
         }
         
@@ -67,5 +78,8 @@ class ToDoListViewController: UITableViewController {
         alert.addAction(action)
         present(alert, animated: true, completion: nil)
     }
+    
+    
+    
 }
 
